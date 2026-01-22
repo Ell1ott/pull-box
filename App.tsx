@@ -305,6 +305,40 @@ const MainAppContent: React.FC = () => {
     fetchBoxes();
   }, [user]);
 
+  useEffect(() => {
+    if (!user || isDemoUser(user)) return;
+
+    const channel = supabase
+      .channel(`pull_boxes_changes_${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'pull_boxes', filter: `owner_id=eq.${user.id}` },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const deletedId = (payload.old as any)?.id as string | undefined;
+            if (deletedId) setBoxes((prev) => prev.filter((b) => b.id !== deletedId));
+            return;
+          }
+
+          const row = (payload.new as any) || null;
+          if (!row?.id) return;
+          const mapped = mapPullBox(row);
+          setBoxes((prev) => {
+            const existingIndex = prev.findIndex((b) => b.id === mapped.id);
+            if (existingIndex === -1) return [mapped, ...prev];
+            const next = [...prev];
+            next[existingIndex] = mapped;
+            return next;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   const navigate = useNavigate();
 
   const handleCreateBox = async (name: string) => {
@@ -476,9 +510,13 @@ const PublicUploaderWrapper: React.FC<{ boxes: PullBox[], driveService: any }> =
     fetchByCode();
   }, [boxes, code]);
 
-  if (loading) return <div className="p-20 text-center font-bold">Loading...</div>;
-  if (!box) return <div className="p-20 text-center font-bold">Invalid Link</div>;
-  return <div className="min-h-screen bg-gray-50"><Uploader box={box} driveService={driveService || new GoogleDriveService('guest')} useEdgeUpload /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-sm font-semibold text-gray-600">Loading...</div>;
+  if (!box) return <div className="min-h-screen flex items-center justify-center text-sm font-semibold text-gray-600">Invalid Link</div>;
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
+      <Uploader box={box} driveService={driveService || new GoogleDriveService('guest')} useEdgeUpload />
+    </div>
+  );
 };
 
 const App: React.FC = () => (

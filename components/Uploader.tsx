@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, X, CheckCircle2, Image as ImageIcon, AlertCircle, Loader2 } from 'lucide-react';
 import { PullBox, UploadProgress } from '../types';
 import { compressImage, formatBytes } from '../services/compressionService';
@@ -16,6 +16,17 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
   const [isUploading, setIsUploading] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasAutoOpenedRef = useRef(false);
+
+  useEffect(() => {
+    if (hasAutoOpenedRef.current) return;
+    if (isCompleted || isUploading || files.length > 0) return;
+    hasAutoOpenedRef.current = true;
+    const timer = window.setTimeout(() => {
+      fileInputRef.current?.click();
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [files.length, isCompleted, isUploading]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -121,24 +132,27 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
-      <div className="bg-white rounded-3xl border shadow-xl overflow-hidden">
-        <div className="bg-indigo-600 p-8 text-white">
-          <h1 className="text-2xl font-bold mb-1">{box.name}</h1>
-          <p className="opacity-80 text-sm">Collection active until {new Date(box.expiresAt).toLocaleDateString()}</p>
+    <div className="max-w-xl mx-auto px-4 py-8 sm:py-12">
+      <div className="bg-white/90 backdrop-blur rounded-3xl border border-white/60 shadow-[0_12px_40px_rgba(15,23,42,0.10)] overflow-hidden">
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-5 sm:p-7 text-white">
+          <div className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/15 border border-white/20 mb-3">
+            Pull-Box Upload
+          </div>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{box.name}</h1>
+          <p className="opacity-85 text-xs sm:text-sm mt-1">Open until {new Date(box.expiresAt).toLocaleDateString()}</p>
         </div>
 
-        <div className="p-8">
+        <div className="p-5 sm:p-7">
           {files.length === 0 ? (
             <div 
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer group"
+              className="border border-dashed border-gray-200 rounded-2xl p-8 sm:p-10 text-center hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer group"
             >
-              <div className="w-16 h-16 bg-gray-50 group-hover:bg-white rounded-full flex items-center justify-center mx-auto mb-4 transition-colors">
-                <Upload className="w-8 h-8 text-gray-400 group-hover:text-indigo-600" />
+              <div className="w-14 h-14 bg-gray-50 group-hover:bg-white rounded-full flex items-center justify-center mx-auto mb-4 transition-colors">
+                <Upload className="w-7 h-7 text-gray-400 group-hover:text-indigo-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Select photos to upload</h3>
-              <p className="text-gray-500 mt-1">Multi-selection supported. RAW or JPEG.</p>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Tap to choose photos</h3>
+              <p className="text-gray-500 mt-1 text-sm">Multi-select supported. RAW or JPEG.</p>
               <input
                 type="file"
                 multiple
@@ -150,9 +164,9 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="max-h-96 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-gray-200">
+              <div className="max-h-80 sm:max-h-96 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-gray-200">
                 {files.map((file, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border">
+                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50/80 rounded-xl border border-gray-100">
                     <div className="flex items-center space-x-3 min-w-0">
                       <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
                         <ImageIcon className="w-5 h-5 text-indigo-600" />
@@ -187,7 +201,7 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
               </div>
 
               {!isUploading && (
-                <div className="flex space-x-4">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={() => setFiles([])}
                     className="flex-1 px-4 py-3 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
@@ -227,7 +241,7 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
             </div>
           )}
 
-          <div className="mt-8 pt-6 border-t border-gray-100">
+          <div className="mt-6 pt-5 border-t border-gray-100">
             <div className="flex items-start space-x-3 text-xs text-gray-500">
               <AlertCircle className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
               <p>
