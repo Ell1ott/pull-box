@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Pull-Box",
+  "description": "A high-quality photo collection service that leverages your own Google Drive storage for seamless, cost-effective photo sharing.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
