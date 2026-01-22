@@ -16,11 +16,23 @@ const AuthPage: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) => {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const getRedirectUri = () => {
+    const envUrl = (import.meta as any).env?.VITE_PUBLIC_SITE_URL || (import.meta as any).env?.VITE_SITE_URL;
+    if (envUrl) {
+      try {
+        return new URL(envUrl).toString();
+      } catch {
+        return envUrl;
+      }
+    }
+    return `${window.location.origin}${window.location.pathname}`;
+  };
+
   const handleGoogleLogin = async () => {
     setError(null);
     setIsAuthenticating(true);
     
-    const redirectUri = window.location.origin + window.location.pathname;
+    const redirectUri = getRedirectUri();
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
