@@ -476,9 +476,37 @@ const PublicUploaderWrapper: React.FC<{ boxes: PullBox[], driveService: any }> =
     fetchByCode();
   }, [boxes, code]);
 
-  if (loading) return <div className="p-20 text-center font-bold">Loading...</div>;
-  if (!box) return <div className="p-20 text-center font-bold">Invalid Link</div>;
-  return <div className="min-h-screen bg-gray-50"><Uploader box={box} driveService={driveService || new GoogleDriveService('guest')} useEdgeUpload /></div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
+        <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
+        <h2 className="text-xl font-semibold text-gray-900">Entering Pull-Box...</h2>
+        <p className="text-gray-500 mt-2">Hang tight while we find your folder.</p>
+      </div>
+    );
+  }
+
+  if (!box) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
+        <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900">Invalid Link</h2>
+        <p className="text-gray-600 mt-2 mb-8 max-w-xs mx-auto">
+          This Pull-Box link may have expired or doesn't exist. Please check with the owner.
+        </p>
+        <button 
+          onClick={() => navigate('/')}
+          className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl"
+        >
+          Go Home
+        </button>
+      </div>
+    );
+  }
+  
+  return <Uploader box={box} driveService={driveService || new GoogleDriveService('guest')} useEdgeUpload />;
 };
 
 const App: React.FC = () => (

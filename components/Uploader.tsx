@@ -134,27 +134,29 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
   }
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-8 sm:py-12">
-      <div className="bg-white/90 backdrop-blur rounded-3xl border border-white/60 shadow-[0_12px_40px_rgba(15,23,42,0.10)] overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-5 sm:p-7 text-white">
-          <div className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/15 border border-white/20 mb-3">
+    <div className="min-h-screen sm:py-12 sm:px-4 bg-gray-50 flex flex-col">
+      <div className="flex-1 max-w-xl mx-auto w-full bg-white sm:bg-white/90 sm:backdrop-blur sm:rounded-3xl sm:border sm:border-white/60 sm:shadow-[0_12px_40px_rgba(15,23,42,0.10)] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 sm:p-8 text-white shrink-0">
+          <div className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/15 border border-white/20 mb-4">
             Pull-Box Upload
           </div>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{box.name}</h1>
-          <p className="opacity-85 text-xs sm:text-sm mt-1">Open until {new Date(box.expiresAt).toLocaleDateString()}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{box.name}</h1>
+          <p className="opacity-80 text-sm mt-1.5 font-medium">Open until {new Date(box.expiresAt).toLocaleDateString()}</p>
         </div>
 
-        <div className="p-5 sm:p-7">
+        {/* Content Area */}
+        <div className="p-6 sm:p-8 flex-1 flex flex-col min-h-0">
           {files.length === 0 ? (
             <div 
               onClick={() => fileInputRef.current?.click()}
-              className="border border-dashed border-gray-200 rounded-2xl p-8 sm:p-10 text-center hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer group"
+              className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-3xl p-8 text-center hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer group bg-gray-50/50"
             >
-              <div className="w-14 h-14 bg-gray-50 group-hover:bg-white rounded-full flex items-center justify-center mx-auto mb-4 transition-colors">
-                <Upload className="w-7 h-7 text-gray-400 group-hover:text-indigo-600" />
+              <div className="w-20 h-20 bg-white shadow-sm group-hover:shadow group-hover:scale-110 rounded-full flex items-center justify-center mb-6 transition-all duration-300">
+                <Upload className="w-10 h-10 text-indigo-600" />
               </div>
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Tap to choose photos</h3>
-              <p className="text-gray-500 mt-1 text-sm">Multi-select supported. RAW or JPEG.</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Ready to share photos?</h3>
+              <p className="text-gray-500 text-sm max-w-[240px]">Tap anywhere to select photos from your library</p>
               <input
                 type="file"
                 multiple
@@ -165,35 +167,36 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
               />
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="max-h-80 sm:max-h-96 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-gray-200">
+            <div className="flex-1 flex flex-col min-h-0">
+              {/* File List */}
+              <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1 scrollbar-thin scrollbar-thumb-gray-200 mb-6">
                 {files.map((file, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50/80 rounded-xl border border-gray-100">
-                    <div className="flex items-center space-x-3 min-w-0">
-                      <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
-                        <ImageIcon className="w-5 h-5 text-indigo-600" />
+                  <div key={i} className="flex items-center justify-between p-4 bg-gray-50/80 rounded-2xl border border-gray-100">
+                    <div className="flex items-center space-x-4 min-w-0">
+                      <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0 shadow-sm">
+                        <ImageIcon className="w-6 h-6 text-indigo-600" />
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
-                        <p className="text-xs text-gray-500">{formatBytes(file.size)}</p>
+                      <div className="min-w-0 font-medium">
+                        <p className="text-sm text-gray-900 truncate">{file.name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{formatBytes(file.size)}</p>
                       </div>
                     </div>
                     {isUploading ? (
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center ml-4 shrink-0">
                         {uploads[file.name]?.status === 'completed' ? (
-                          <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                          <CheckCircle2 className="w-6 h-6 text-emerald-500" />
                         ) : uploads[file.name]?.status === 'error' ? (
-                          <AlertCircle className="w-5 h-5 text-red-500" />
+                          <AlertCircle className="w-6 h-6 text-red-500" />
                         ) : (
                           <div className="text-indigo-600">
-                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <Loader2 className="w-6 h-6 animate-spin" />
                           </div>
                         )}
                       </div>
                     ) : (
                       <button
                         onClick={() => removeFile(i)}
-                        className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                        className="p-2 text-gray-400 hover:text-red-500 transition-colors bg-white rounded-full shadow-sm"
                       >
                         <X className="w-5 h-5" />
                       </button>
@@ -202,38 +205,38 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
                 ))}
               </div>
 
-              {!isUploading && (
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    onClick={() => setFiles([])}
-                    className="flex-1 px-4 py-3 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
-                  >
-                    Clear All
-                  </button>
+              {/* Action Section */}
+              {!isUploading ? (
+                <div className="space-y-3 mt-auto">
                   <button
                     onClick={startUpload}
-                    className="flex-[2] px-4 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-all shadow-lg flex items-center justify-center space-x-2"
+                    className="w-full py-4.5 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center space-x-2 active:scale-[0.98] py-4"
                   >
                     <Upload className="w-5 h-5" />
                     <span>Upload {files.length} Photos</span>
                   </button>
+                  <button
+                    onClick={() => setFiles([])}
+                    className="w-full py-3 text-gray-500 font-semibold rounded-xl hover:bg-gray-50 transition-all"
+                  >
+                    Clear All
+                  </button>
                 </div>
-              )}
-              
-              {isUploading && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm font-medium text-gray-700">
-                    <span>Uploading...</span>
+              ) : (
+                <div className="space-y-4 mt-auto">
+                  <div className="flex justify-between text-sm font-bold text-gray-700">
+                    <span className="flex items-center">
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Uploading to Drive...
+                    </span>
                     <span>
-                      {/* Fix: Adding explicit type casting to resolve 'unknown' property access error */}
                       {(Object.values(uploads) as UploadProgress[]).filter(u => u.status === 'completed').length} / {files.length}
                     </span>
                   </div>
-                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner">
                     <div 
-                      className="h-full bg-indigo-600 transition-all duration-300"
+                      className="h-full bg-indigo-600 transition-all duration-500 ease-out shadow-[0_0_8px_rgba(79,70,229,0.4)]"
                       style={{ 
-                        /* Fix: Adding explicit type casting to resolve 'unknown' property access error */
                         width: `${((Object.values(uploads) as UploadProgress[]).filter(u => u.status === 'completed').length / files.length) * 100}%` 
                       }}
                     />
@@ -243,11 +246,12 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
             </div>
           )}
 
-          <div className="mt-6 pt-5 border-t border-gray-100">
-            <div className="flex items-start space-x-3 text-xs text-gray-500">
+          {/* Tips/Info */}
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <div className="flex items-start space-x-3 text-xs text-gray-500 bg-indigo-50/50 p-4 rounded-2xl">
               <AlertCircle className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-              <p>
-                Pull-Box automatically optimizes your images to save storage space while maintaining visual brilliance.
+              <p className="leading-relaxed">
+                Pull-Box automatically <span className="text-indigo-700 font-medium">optimizes your images</span> to save storage space while maintaining visual brilliance.
                 Photos are uploaded directly to the owner's Google Drive.
               </p>
             </div>
