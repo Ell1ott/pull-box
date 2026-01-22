@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Download, Trash2, Maximize2, X, Image as ImageIcon, Share2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ChevronLeft, ChevronRight, Download, Trash2, Maximize2, X, Image as ImageIcon, Share2, RefreshCcw } from 'lucide-react';
 import { PullBox, DriveFile } from '../types';
 import { GoogleDriveService } from '../services/googleDrive';
 
@@ -29,25 +29,31 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedIndex]);
 
-  useEffect(() => {
-    const fetchFiles = async () => {
-      setLoading(true);
-      console.log('[gallery] fetch:start', { boxId: box.id, folderId: box.driveFolderId });
-      try {
-        const result = await driveService.listFiles(box.driveFolderId);
-        console.log('[gallery] fetch:success', { count: result.length, boxId: box.id });
-        setFiles(result);
-      } catch (err) {
-        console.error('Failed to fetch files', err);
-        console.log('[gallery] fetch:error', { boxId: box.id });
-      } finally {
-        setLoading(false);
-        console.log('[gallery] fetch:done', { boxId: box.id });
-      }
-    };
+  const fetchFiles = useCallback(async () => {
+    setLoading(true);
+    console.log('[gallery] fetch:start', { boxId: box.id, folderId: box.driveFolderId });
+    try {
+      const result = await driveService.listFiles(box.driveFolderId);
+      console.log('[gallery] fetch:success', { count: result.length, boxId: box.id });
+      setFiles(result);
+    } catch (err) {
+      console.error('Failed to fetch files', err);
+      console.log('[gallery] fetch:error', { boxId: box.id });
+    } finally {
+      setLoading(false);
+      console.log('[gallery] fetch:done', { boxId: box.id });
+    }
+  }, [box.driveFolderId, box.id, driveService]);
 
+  useEffect(() => {
     fetchFiles();
-  }, [box.driveFolderId, driveService]);
+  }, [fetchFiles]);
+
+  useEffect(() => {
+    const handleFocus = () => fetchFiles();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [fetchFiles]);
 
   const handleDelete = async (fileId: string) => {
     if (!confirm('Are you sure you want to delete this photo?')) return;
@@ -139,6 +145,14 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
           </div>
         </div>
         <div className="flex items-center space-x-2 md:space-x-3">
+          <button
+            onClick={fetchFiles}
+            disabled={loading}
+            className="flex-1 sm:flex-none inline-flex items-center justify-center space-x-2 px-3 md:px-4 py-2 bg-white border text-gray-700 font-semibold rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <RefreshCcw className="w-4 h-4" />
+            <span className="whitespace-nowrap">Refresh</span>
+          </button>
           <button
             onClick={handleDownloadAll}
             disabled={loading || files.length === 0 || downloadingAll}
