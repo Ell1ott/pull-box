@@ -109,24 +109,26 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
 
   if (isCompleted) {
     return (
-      <div className="max-w-xl mx-auto px-4 py-20 text-center animate-in fade-in zoom-in duration-300">
-        <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          <CheckCircle2 className="w-10 h-10" />
+      <div className="sm:max-w-xl sm:mx-auto sm:px-4 min-h-screen flex items-center justify-center animate-in fade-in zoom-in duration-300">
+        <div className="w-full bg-white sm:bg-transparent sm:py-12 p-8 sm:p-0 rounded-3xl text-center">
+          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-10 h-10" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Upload Complete!</h1>
+          <p className="text-gray-600 mb-8">
+            Thank you! {files.length} photos were successfully added to <span className="font-semibold text-gray-900">"{box.name}"</span>.
+          </p>
+          <button
+            onClick={() => {
+              setFiles([]);
+              setUploads({});
+              setIsCompleted(false);
+            }}
+            className="w-full sm:w-auto px-8 py-4 bg-indigo-600 text-white font-semibold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg active:scale-95"
+          >
+            Upload More Photos
+          </button>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Upload Complete!</h1>
-        <p className="text-gray-600 mb-8">
-          Thank you! {files.length} photos were successfully added to <span className="font-semibold text-gray-900">"{box.name}"</span>.
-        </p>
-        <button
-          onClick={() => {
-            setFiles([]);
-            setUploads({});
-            setIsCompleted(false);
-          }}
-          className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-all shadow-md"
-        >
-          Upload More Photos
-        </button>
       </div>
     );
   }
