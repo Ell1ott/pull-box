@@ -54,29 +54,81 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
 
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-    try {
-      for (const file of files) {
-        if (!file.webContentLink) continue;
-        try {
-          const response = await fetch(file.webContentLink, { credentials: 'omit' });
-          if (!response.ok) throw new Error('Download failed');
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
+    const isMobileDevice = () => {
+      if (typeof navigator === 'undefined') return false;
+      return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    };
 
+    const canShareFiles = () => {
+      if (typeof navigator === 'undefined') return false;
+      return typeof (navigator as any).share === 'function' && typeof (navigator as any).canShare === 'function';
+    };
+
+    const tryShareToGallery = async (fileList: DriveFile[]) => {
+      if (!isMobileDevice() || !canShareFiles()) return false;
+
+      const sharedFiles: File[] = [];
+      for (const file of fileList) {
+        try {
+          const blob = await driveService.downloadFile(file.id);
+          const fileName = file.name || `image-${Date.now()}.jpg`;
+          const mimeType = blob.type || 'image/jpeg';
+          sharedFiles.push(new File([blob], fileName, { type: mimeType }));
+        } catch (err) {
+          console.error('[gallery] share download failed', { fileId: file.id, err });
+        }
+      }
+
+      if (sharedFiles.length === 0) return false;
+
+      try {
+        const sharePayload = { files: sharedFiles, title: `${box.name} Photos` } as any;
+        if ((navigator as any).canShare(sharePayload)) {
+          await (navigator as any).share(sharePayload);
+          return true;
+        }
+      } catch (err) {
+        console.error('[gallery] share failed', err);
+      }
+
+      return false;
+    };
+
+    const downloadFilesSequentially = async (fileList: DriveFile[]) => {
+      for (const file of fileList) {
+        try {
+          let blob: Blob | null = null;
+
+          try {
+            blob = await driveService.downloadFile(file.id);
+          } catch (err) {
+            if (!file.webContentLink) throw err;
+            const response = await fetch(file.webContentLink);
+            if (!response.ok) throw err;
+            blob = await response.blob();
+          }
+
+          const downloadUrl = URL.createObjectURL(blob);
           const link = document.createElement('a');
-          link.href = url;
-          link.download = file.name || 'photo';
+          link.href = downloadUrl;
+          link.download = file.name || `image-${Date.now()}.jpg`;
           link.rel = 'noopener';
+
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-
-          URL.revokeObjectURL(url);
-          await delay(400);
+          URL.revokeObjectURL(downloadUrl);
+          await delay(500);
         } catch (err) {
           console.error('[gallery] download failed', { fileId: file.id, err });
         }
       }
+    };
+
+    try {
+      const shared = await tryShareToGallery(files);
+      if (shared) return;
+      await downloadFilesSequentially(files);
     } finally {
       setDownloadingAll(false);
     }

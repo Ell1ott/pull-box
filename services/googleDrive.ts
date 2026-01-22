@@ -10,6 +10,10 @@ export class GoogleDriveService {
     this.isDemo = token === 'mock_token_xyz' || token === 'guest';
   }
 
+  isDemoMode(): boolean {
+    return this.isDemo;
+  }
+
   private async fetchWithAuth(url: string, options: RequestInit = {}) {
     if (this.isDemo) {
       console.warn("Running in Demo Mode - API calls are simulated.");
@@ -123,6 +127,25 @@ export class GoogleDriveService {
     await this.fetchWithAuth(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
       method: 'DELETE'
     });
+  }
+
+  async downloadFile(fileId: string): Promise<Blob> {
+    if (this.isDemo) {
+      throw new Error('Demo mode does not support authenticated downloads');
+    }
+
+    const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Download failed with status ${response.status}`);
+    }
+
+    return response.blob();
   }
 
   async getUserInfo(): Promise<{ name: string; email: string; photo: string }> {
