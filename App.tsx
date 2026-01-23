@@ -52,24 +52,21 @@ const AuthPage: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
-      <div className="max-w-md w-full space-y-8 text-center">
-        <div className="flex justify-center">
-          <div className="p-4 bg-indigo-600 rounded-3xl shadow-xl">
-            <Camera className="w-10 h-10 text-white" />
-          </div>
+    <div className="min-h-screen bg-[#F2F2F7] flex flex-col items-center justify-center p-6 font-sans selection:bg-blue-100">
+      <div className="max-w-sm w-full bg-white rounded-[32px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-10 text-center animate-in zoom-in-95 duration-500">
+        <div className="w-20 h-20 bg-indigo-600 rounded-[22px] shadow-lg shadow-indigo-200 flex items-center justify-center mx-auto mb-6 transform hover:scale-105 transition-transform duration-300">
+          <Camera className="w-10 h-10 text-white" />
         </div>
         
-        <div>
-          <h1 className="text-4xl font-black text-gray-900">Pull-Box</h1>
-          <p className="mt-3 text-gray-600">Collect high-quality photos directly into your Google Drive.</p>
-        </div>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">ImageJar</h1>
+        <p className="text-gray-500 font-medium leading-relaxed mb-8">
+          The premium way to collect photos directly into your Google Drive.
+        </p>
 
         {error && (
-          <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start space-x-3 text-left">
+          <div className="mb-6 p-4 bg-red-50 rounded-2xl flex items-start space-x-3 text-left">
             <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-            <div className="text-sm text-red-700">
-              <p className="font-bold">Login Issue</p>
+            <div className="text-sm text-red-700 font-medium">
               <p>{error}</p>
             </div>
           </div>
@@ -79,28 +76,28 @@ const AuthPage: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) => {
           <button
             onClick={handleGoogleLogin}
             disabled={isAuthenticating}
-            className="w-full flex items-center justify-center space-x-3 px-6 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg disabled:opacity-50"
+            className="w-full h-14 bg-[#007AFF] text-white text-[17px] font-bold rounded-2xl hover:bg-[#0062CC] transition-all shadow-md active:scale-[0.98] flex items-center justify-center space-x-3 disabled:opacity-70"
           >
-            {isAuthenticating ? <Loader2 className="w-6 h-6 animate-spin" /> : <LogIn className="w-6 h-6" />}
-            <span>Connect Google Drive</span>
+            {isAuthenticating ? <Loader2 className="w-6 h-6 animate-spin" /> : <LogIn className="w-5 h-5" />}
+            <span>Sign in with Google</span>
           </button>
           
           <button
             onClick={() => onLogin({ id: 'demo', name: 'Demo Mode', email: 'demo@example.com', accessToken: 'mock_token_xyz' })}
-            className="w-full py-4 text-gray-500 font-medium hover:text-gray-900 transition-colors"
+            className="w-full h-12 text-[#007AFF] font-semibold hover:bg-blue-50 rounded-2xl transition-colors text-[15px]"
           >
-            Or Try Demo Mode (Skip Auth)
+            Try Demo Mode
           </button>
         </div>
 
-        <div className="pt-8 border-t border-gray-100 grid grid-cols-2 gap-4 text-sm text-gray-500">
-          <div className="flex items-center justify-center space-x-2">
-            <HardDrive className="w-4 h-4" />
-            <span>Own Storage</span>
+        <div className="pt-8 mt-4 border-t border-gray-100 flex items-center justify-center space-x-6 text-[13px] text-gray-400 font-medium">
+          <div className="flex items-center space-x-1.5">
+            <HardDrive className="w-3.5 h-3.5" />
+            <span>Google Drive™ Storage</span>
           </div>
-          <div className="flex items-center justify-center space-x-2">
-            <ShieldCheck className="w-4 h-4" />
-            <span>Private</span>
+          <div className="flex items-center space-x-1.5">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Private & Secure</span>
           </div>
         </div>
       </div>
@@ -437,6 +434,7 @@ const AdminWrapper: React.FC<{ boxes: PullBox[], loading: boolean, driveService:
 };
 
 const PublicUploaderWrapper: React.FC<{ boxes: PullBox[], driveService: any }> = ({ boxes, driveService }) => {
+  const navigate = useNavigate();
   const { code } = useParams<{ code: string }>();
   const [box, setBox] = useState<PullBox | null>(() => boxes.find(b => b.linkCode === code) || null);
   const [loading, setLoading] = useState(false);
@@ -480,7 +478,7 @@ const PublicUploaderWrapper: React.FC<{ boxes: PullBox[], driveService: any }> =
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
         <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900">Entering Pull-Box...</h2>
+        <h2 className="text-xl font-semibold text-gray-900">Opening Jar...</h2>
         <p className="text-gray-500 mt-2">Hang tight while we find your folder.</p>
       </div>
     );
@@ -494,7 +492,7 @@ const PublicUploaderWrapper: React.FC<{ boxes: PullBox[], driveService: any }> =
         </div>
         <h2 className="text-2xl font-bold text-gray-900">Invalid Link</h2>
         <p className="text-gray-600 mt-2 mb-8 max-w-xs mx-auto">
-          This Pull-Box link may have expired or doesn't exist. Please check with the owner.
+          This ImageJar link may have expired or doesn't exist. Please check with the owner.
         </p>
         <button 
           onClick={() => navigate('/')}
