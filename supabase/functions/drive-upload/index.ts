@@ -7,6 +7,12 @@ const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID") ?? "";
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET") ?? "";
 const UPLOAD_TOKEN = Deno.env.get("UPLOAD_TOKEN") ?? "";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-upload-token",
+};
+
 async function refreshAccessToken(
   refreshToken: string,
 ): Promise<{ accessToken: string; expiresAt: string | null; refreshToken?: string }> {
@@ -82,6 +88,10 @@ async function uploadToDrive(accessToken: string, folderId: string, file: File):
 }
 
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   const requestId = crypto.randomUUID();
   const debug = (message: string, extra?: Record<string, unknown>) => {
     const payload = extra ? JSON.stringify(extra) : "";
@@ -91,21 +101,23 @@ serve(async (req) => {
   debug("request:start", { method: req.method, url: req.url });
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     debug("config:missing", { hasUrl: !!SUPABASE_URL, hasServiceKey: !!SUPABASE_SERVICE_ROLE_KEY });
-    return new Response("Server misconfigured", { status: 500 });
+    return new Response("Server misconfigured", { status: 500, headers: corsHeaders });
   }
-  if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+  if (req.method !== "POST") {
+    return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
+  }
 
   const url = new URL(req.url);
   const token = url.searchParams.get("token") ?? req.headers.get("x-upload-token") ?? "";
   if (UPLOAD_TOKEN && token !== UPLOAD_TOKEN) {
     debug("auth:invalid-token");
-    return new Response("Unauthorized", { status: 401 });
+    return new Response("Unauthorized", { status: 401, headers: corsHeaders });
   }
 
   const contentType = req.headers.get("content-type") ?? "";
   if (!contentType.includes("multipart/form-data")) {
     debug("request:bad-content-type", { contentType });
-    return new Response("Expected multipart/form-data", { status: 400 });
+    return new Response("Expected multipart/form-data", { status: 400, headers: corsHeaders });
   }
 
   const form = await req.formData();
@@ -122,11 +134,11 @@ serve(async (req) => {
 
   if (files.length === 0) {
     debug("request:no-files");
-    return new Response("Missing file", { status: 400 });
+    return new Response("Missing file", { status: 400, headers: corsHeaders });
   }
   if (files.some((f) => !f.type.startsWith("image/"))) {
     debug("request:non-image", { types: files.map((f) => f.type) });
-    return new Response("Only images allowed", { status: 400 });
+    return new Response("Only images allowed", { status: 400, headers: corsHeaders });
   }
   debug("request:files", { count: files.length, types: files.map((f) => f.type) });
 
@@ -142,11 +154,11 @@ serve(async (req) => {
 
   if (boxError || !box) {
     debug("db:pull_box_not_found", { error: boxError?.message });
-    return new Response("Invalid link", { status: 404 });
+    return new Response("Invalid link", { status: 404, headers: corsHeaders });
   }
   if (box.expires_at && Date.parse(box.expires_at) <= Date.now()) {
     debug("db:link_expired", { expiresAt: box.expires_at });
-    return new Response("Link expired", { status: 410 });
+    return new Response("Link expired", { status: 410, headers: corsHeaders });
   }
   debug("db:pull_box", { id: box.id, owner: box.owner_id, folder: box.drive_folder_id });
 
@@ -159,7 +171,7 @@ serve(async (req) => {
 
   if (tokenError || (!tokenRow?.access_token && !tokenRow?.refresh_token)) {
     debug("db:token_missing", { error: tokenError?.message });
-    return new Response("Owner not connected", { status: 403 });
+    return new Response("Owner not connected", { status: 403, headers: corsHeaders });
   }
   debug("db:token", { hasRefresh: !!tokenRow.refresh_token, expiresAt: tokenRow.expires_at });
 
@@ -184,13 +196,13 @@ serve(async (req) => {
     } catch (err) {
       console.error("Token refresh failed", err);
       debug("oauth:refresh_failed", { message: err instanceof Error ? err.message : "unknown" });
-      return new Response("Owner token refresh failed", { status: 502 });
+      return new Response("Owner token refresh failed", { status: 502, headers: corsHeaders });
     }
   }
 
   if (!accessToken) {
     debug("oauth:missing-access-token");
-    return new Response("Owner not connected", { status: 403 });
+    return new Response("Owner not connected", { status: 403, headers: corsHeaders });
   }
 
   try {
@@ -213,9 +225,15 @@ serve(async (req) => {
         debug("db:photo_count_updated", { photoCount: nextCount });
       }
     }
-    return Response.json({ files: results });
+    return new Response(JSON.stringify({ files: results }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (err) {
     console.error("Upload failed", err);
-    return new Response(`Upload failed: ${err instanceof Error ? err.message : "unknown"}`, { status: 502 });
+    return new Response(`Upload failed: ${err instanceof Error ? err.message : "unknown"}`, {
+      status: 502,
+      headers: corsHeaders,
+    });
   }
 });
