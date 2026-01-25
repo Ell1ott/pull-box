@@ -157,20 +157,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user, boxes, onCreateBox, onDelet
             {boxes.map((box) => (
               <div 
                 key={box.id} 
-                className="p-6 hover:bg-gray-50/80 transition-all group flex flex-col md:flex-row md:items-center gap-6 cursor-pointer"
+                className="p-5 sm:p-6 hover:bg-gray-50/80 transition-all group flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 cursor-pointer relative"
                 onClick={() => onViewBox(box.id)}
               >
                 {/* Icon & Info */}
-                <div className="flex items-center gap-5 flex-grow min-w-0">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 shrink-0 border border-blue-100/50 shadow-sm">
-                    <ImageIcon className="w-7 h-7" />
+                <div className="flex items-center gap-4 sm:gap-5 flex-grow min-w-0">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 shrink-0 border border-blue-100/50 shadow-sm group-hover:scale-105 transition-transform duration-200">
+                    <ImageIcon className="w-6 h-6 sm:w-7 sm:h-7" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="text-lg font-bold text-gray-900 truncate mb-1 group-hover:text-[#007AFF] transition-colors">{box.name}</h4>
-                    <div className="flex items-center text-sm text-gray-500 font-medium space-x-1">
-                      <span>{box.photoCount} items</span>
+                    <h4 className="text-base sm:text-lg font-bold text-gray-900 truncate mb-0.5 sm:mb-1 group-hover:text-[#007AFF] transition-colors">
+                      {box.name}
+                    </h4>
+                    <div className="flex items-center text-xs sm:text-sm text-gray-500 font-medium space-x-1">
+                      <span className="bg-gray-100 px-1.5 py-0.5 rounded text-[10px] sm:text-xs uppercase tracking-tight mr-1 text-gray-400 font-bold">{box.photoCount} items</span>
                       <span className="text-gray-300">•</span>
-                      <span className={Math.ceil((box.expiresAt - Date.now()) / (1000 * 60 * 60 * 24)) < 3 ? "text-amber-500" : ""}>
+                      <span className={Math.ceil((box.expiresAt - Date.now()) / (1000 * 60 * 60 * 24)) < 3 ? "text-amber-500 font-bold" : ""}>
                         Exp {new Date(box.expiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
@@ -178,37 +180,33 @@ const Dashboard: React.FC<DashboardProps> = ({ user, boxes, onCreateBox, onDelet
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-end gap-3" onClick={(e) => e.stopPropagation()}>
-                   <div className="hidden md:flex items-center text-xs font-mono text-gray-400 bg-gray-100/50 px-3 py-1.5 rounded-lg mr-2 max-w-[140px] truncate">
-                      {window.location.origin}/#/box/{box.linkCode}
+                <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto" onClick={(e) => e.stopPropagation()}>
+                   {/* URL - Shared placement for mobile and desktop */}
+                   <div className="flex items-center text-[10px] sm:text-xs font-mono text-gray-400 bg-gray-50 sm:bg-gray-100/50 px-2 sm:px-3 py-1.5 rounded-lg flex-1 sm:flex-none min-w-0 max-w-[140px] xs:max-w-none sm:max-w-[180px] lg:max-w-[240px] truncate border border-gray-100">
+                      {window.location.origin.replace(/^https?:\/\//, '')}/#/box/{box.linkCode}
                    </div>
                    
-                  <button
-                    onClick={() => handleCopyLink(box.linkCode, box.id)}
-                    className={`h-10 w-10 flex items-center justify-center rounded-xl border transition-all ${
-                      copiedId === box.id 
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
-                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                    title="Copy Link"
-                  >
-                    {copiedId === box.id ? <CheckCircle2 className="w-5 h-5" /> : <Link className="w-5 h-5" />}
-                  </button>
-                  
-                  <button
-                    onClick={() => onViewBox(box.id)}
-                    className="h-10 px-5 bg-white border border-gray-200 hover:border-[#007AFF] hover:text-[#007AFF] text-gray-700 font-semibold rounded-xl text-sm transition-all"
-                  >
-                    Open
-                  </button>
+                   <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => handleCopyLink(box.linkCode, box.id)}
+                      className={`h-11 sm:h-10 w-11 sm:w-10 flex items-center justify-center rounded-xl border transition-all active:scale-95 ${
+                        copiedId === box.id 
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
+                        : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                      title="Copy Link"
+                    >
+                      {copiedId === box.id ? <CheckCircle2 className="w-5 h-5" /> : <Link className="w-5 h-5" />}
+                    </button>
 
-                   <button
-                    onClick={() => onDeleteBox(box.id)}
-                    className="h-10 w-10 flex items-center justify-center rounded-xl border border-transparent text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
-                    title="Delete Collection"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                    <button
+                      onClick={() => onDeleteBox(box.id)}
+                      className="h-11 sm:h-10 w-11 sm:w-10 flex items-center justify-center rounded-xl border border-transparent text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all active:scale-95 shrink-0"
+                      title="Delete Collection"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                   </div>
                 </div>
               </div>
             ))}

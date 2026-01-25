@@ -12,7 +12,7 @@ import Gallery from './components/Gallery';
 import Uploader from './components/Uploader';
 import { Camera, ShieldCheck, HardDrive, LogIn, Loader2, AlertCircle } from 'lucide-react';
 
-const AuthPage: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) => {
+const AuthPage: React.FC = () => {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,13 +81,6 @@ const AuthPage: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) => {
             {isAuthenticating ? <Loader2 className="w-6 h-6 animate-spin" /> : <LogIn className="w-5 h-5" />}
             <span>Sign in with Google</span>
           </button>
-          
-          <button
-            onClick={() => onLogin({ id: 'demo', name: 'Demo Mode', email: 'demo@example.com', accessToken: 'mock_token_xyz' })}
-            className="w-full h-12 text-[#007AFF] font-semibold hover:bg-blue-50 rounded-2xl transition-colors text-[15px]"
-          >
-            Try Demo Mode
-          </button>
         </div>
 
         <div className="pt-8 mt-4 border-t border-gray-100 flex items-center justify-center space-x-6 text-[13px] text-gray-400 font-medium">
@@ -111,18 +104,11 @@ const MainAppContent: React.FC = () => {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [boxes, setBoxes] = useState<PullBox[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.BOXES);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [boxes, setBoxes] = useState<PullBox[]>([]);
   const [boxesLoading, setBoxesLoading] = useState(false);
 
   const [driveService, setDriveService] = useState<GoogleDriveService | null>(null);
   const [isLoadingToken, setIsLoadingToken] = useState(true);
-
-  const isDemoUser = (u: User | null) => {
-    return u?.id === 'demo' || u?.accessToken === 'mock_token_xyz' || u?.accessToken === 'guest';
-  };
 
   const mapPullBox = (row: any): PullBox => {
     return {
@@ -265,20 +251,8 @@ const MainAppContent: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    if (isDemoUser(user)) {
-      localStorage.setItem(STORAGE_KEYS.BOXES, JSON.stringify(boxes));
-    }
-  }, [boxes, user]);
-
-  useEffect(() => {
     if (!user) {
       setBoxes([]);
-      return;
-    }
-
-    if (isDemoUser(user)) {
-      const saved = localStorage.getItem(STORAGE_KEYS.BOXES);
-      setBoxes(saved ? JSON.parse(saved) : []);
       return;
     }
 
@@ -308,21 +282,6 @@ const MainAppContent: React.FC = () => {
     if (!driveService || !user) return;
     try {
       const folder = await driveService.createFolder(name);
-      if (isDemoUser(user)) {
-        const newBox: PullBox = {
-          id: Math.random().toString(36).substr(2, 9),
-          ownerId: user.id,
-          name,
-          driveFolderId: folder.id,
-          linkCode: generateLinkCode(),
-          createdAt: Date.now(),
-          expiresAt: Date.now() + (DEFAULT_EXPIRY_DAYS * 24 * 60 * 60 * 1000),
-          photoCount: 0,
-        };
-        setBoxes([newBox, ...boxes]);
-        return;
-      }
-
       const expiresAt = new Date(Date.now() + (DEFAULT_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
       let createdBox: PullBox | null = null;
 
@@ -362,11 +321,6 @@ const MainAppContent: React.FC = () => {
 
   const handleDeleteBox = async (id: string) => {
     if (!user) return;
-    if (isDemoUser(user)) {
-      setBoxes(boxes.filter(b => b.id !== id));
-      return;
-    }
-
     const { error } = await supabase
       .from('pull_boxes')
       .delete()
@@ -409,31 +363,35 @@ const MainAppContent: React.FC = () => {
             />
           </Layout>
         ) : (
-          <AuthPage onLogin={setUser} />
+          <AuthPage />
         )
       } />
       <Route path="/box-admin/:id" element={
-        <Layout user={user} onLogout={onLogout}>
-          <AdminWrapper boxes={boxes} loading={boxesLoading} driveService={driveService} navigate={navigate} />
-        </Layout>
+        user && driveService ? (
+          <Layout user={user} onLogout={onLogout}>
+            <AdminWrapper boxes={boxes} loading={boxesLoading} driveService={driveService} navigate={navigate} />
+          </Layout>
+        ) : (
+          <Navigate to="/" />
+        )
       } />
       <Route path="/box/:code" element={
-        <PublicUploaderWrapper boxes={boxes} driveService={driveService} />
+        <PublicUploaderWrapper boxes={boxes} />
       } />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 };
 
-const AdminWrapper: React.FC<{ boxes: PullBox[], loading: boolean, driveService: any, navigate: any }> = ({ boxes, loading, driveService, navigate }) => {
+const AdminWrapper: React.FC<{ boxes: PullBox[], loading: boolean, driveService: GoogleDriveService, navigate: any }> = ({ boxes, loading, driveService, navigate }) => {
   const { id } = useParams<{ id: string }>();
   const box = boxes.find(b => b.id === id);
   if (!box && loading) return <div className="p-12 text-center">Loading...</div>;
   if (!box) return <div className="p-12 text-center">Not found.</div>;
-  return <Gallery box={box} driveService={driveService || new GoogleDriveService('guest')} onBack={() => navigate('/')} />;
+  return <Gallery box={box} driveService={driveService} onBack={() => navigate('/')} />;
 };
 
-const PublicUploaderWrapper: React.FC<{ boxes: PullBox[], driveService: any }> = ({ boxes, driveService }) => {
+const PublicUploaderWrapper: React.FC<{ boxes: PullBox[] }> = ({ boxes }) => {
   const navigate = useNavigate();
   const { code } = useParams<{ code: string }>();
   const [box, setBox] = useState<PullBox | null>(() => boxes.find(b => b.linkCode === code) || null);
@@ -504,7 +462,7 @@ const PublicUploaderWrapper: React.FC<{ boxes: PullBox[], driveService: any }> =
     );
   }
   
-  return <Uploader box={box} driveService={driveService || new GoogleDriveService('guest')} useEdgeUpload />;
+  return <Uploader box={box} useEdgeUpload />;
 };
 
 const App: React.FC = () => (

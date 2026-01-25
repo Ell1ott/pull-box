@@ -6,7 +6,7 @@ import { GoogleDriveService } from '../services/googleDrive';
 
 interface UploaderProps {
   box: PullBox;
-  driveService: GoogleDriveService;
+  driveService?: GoogleDriveService;
   useEdgeUpload?: boolean;
 }
 
@@ -74,6 +74,10 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
 
   const startUpload = async (filesToUpload: File[] = files) => {
     if (filesToUpload.length === 0 || isUploading) return;
+    if (!useEdgeUpload && !driveService) {
+      alert('Missing Google Drive access token. Please sign in again.');
+      return;
+    }
     
     setIsUploading(true);
     const progressMap: Record<string, UploadProgress> = {};
@@ -101,7 +105,7 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
         if (useEdgeUpload) {
           await uploadViaEdge(file, compressed);
         } else {
-          await driveService.uploadFile(box.driveFolderId, compressed, file.name);
+          await driveService!.uploadFile(box.driveFolderId, compressed, file.name);
         }
 
         setUploads(prev => ({
@@ -288,7 +292,7 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
           {/* Sidebar Header */}
            <div className="p-8 pb-4">
               <div className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white border border-gray-200 text-gray-500 mb-4 shadow-sm">
-                Pull-Box
+                ImageJar
               </div>
               <h2 className="text-3xl font-bold text-gray-900 tracking-tight leading-tight mb-2">{box.name}</h2>
               <p className="text-[13px] text-gray-500 font-medium flex items-center">
