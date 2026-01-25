@@ -39,9 +39,9 @@ function extractLinkCode(value: string): string | null {
   if (!trimmed) return null;
   const directMatch = trimmed.match(/^[A-Za-z0-9]{4,12}$/);
   if (directMatch) return trimmed;
-  const hashMatch = trimmed.match(/#\/box\/([^/?#]+)/);
+  const hashMatch = trimmed.match(/#\/jar\/([^/?#]+)/);
   if (hashMatch?.[1]) return hashMatch[1];
-  const pathMatch = trimmed.match(/\/box\/([^/?#]+)/);
+  const pathMatch = trimmed.match(/\/jar\/([^/?#]+)/);
   if (pathMatch?.[1]) return pathMatch[1];
   return null;
 }

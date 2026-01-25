@@ -18,7 +18,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, boxes, onCreateBox, onDelet
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleCopyLink = (code: string, id: string) => {
-    const url = `${window.location.origin}/#/box/${code}`;
+    const url = `${window.location.origin}/#/jar/${code}`;
     navigator.clipboard.writeText(url);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
@@ -183,7 +183,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, boxes, onCreateBox, onDelet
                 <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto" onClick={(e) => e.stopPropagation()}>
                    {/* URL - Shared placement for mobile and desktop */}
                    <div className="flex items-center text-[10px] sm:text-xs font-mono text-gray-400 bg-gray-50 sm:bg-gray-100/50 px-2 sm:px-3 py-1.5 rounded-lg flex-1 sm:flex-none min-w-0 max-w-[140px] xs:max-w-none sm:max-w-[180px] lg:max-w-[240px] truncate border border-gray-100">
-                      {window.location.origin.replace(/^https?:\/\//, '')}/#/box/{box.linkCode}
+                      {window.location.origin.replace(/^https?:\/\//, '')}/#/jar/{box.linkCode}
                    </div>
                    
                    <div className="flex items-center gap-2 shrink-0">

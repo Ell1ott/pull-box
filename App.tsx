@@ -359,14 +359,14 @@ const MainAppContent: React.FC = () => {
               boxes={boxes} 
               onCreateBox={handleCreateBox} 
               onDeleteBox={handleDeleteBox}
-              onViewBox={(id) => navigate(`/box-admin/${id}`)}
+              onViewBox={(id) => navigate(`/jar-admin/${id}`)}
             />
           </Layout>
         ) : (
           <AuthPage />
         )
       } />
-      <Route path="/box-admin/:id" element={
+      <Route path="/jar-admin/:id" element={
         user && driveService ? (
           <Layout user={user} onLogout={onLogout}>
             <AdminWrapper boxes={boxes} loading={boxesLoading} driveService={driveService} navigate={navigate} />
@@ -375,7 +375,7 @@ const MainAppContent: React.FC = () => {
           <Navigate to="/" />
         )
       } />
-      <Route path="/box/:code" element={
+      <Route path="/jar/:code" element={
         <PublicUploaderWrapper boxes={boxes} />
       } />
       <Route path="*" element={<Navigate to="/" />} />
