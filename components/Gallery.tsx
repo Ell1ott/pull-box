@@ -21,6 +21,9 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [forceInstantOpacity, setForceInstantOpacity] = useState(false);
   const fadeTimeoutRef = useRef<number | null>(null);
+  const [pendingIndex, setPendingIndex] = useState<number | null>(null);
+  const [fullImageId, setFullImageId] = useState<string | null>(null);
+  const prevUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -36,13 +39,15 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
 
   useEffect(() => {
     let isActive = true;
-    const currentUrl = fullImageUrl;
 
     const loadFullImage = async () => {
       if (!selectedImage) {
         setFullImageUrl(null);
+        setFullImageId(null);
         return;
       }
+
+      if (fullImageId === selectedImage.id) return;
 
       setIsFullImageLoading(true);
       try {
@@ -50,10 +55,12 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
         if (!isActive) return;
         const objectUrl = URL.createObjectURL(blob);
         setFullImageUrl(objectUrl);
+        setFullImageId(selectedImage.id);
       } catch (err) {
         console.error('[gallery] full image load failed', { fileId: selectedImage.id, err });
         if (!isActive) return;
         setFullImageUrl(selectedImage.webContentLink || null);
+        setFullImageId(selectedImage.id);
       } finally {
         if (isActive) setIsFullImageLoading(false);
       }
@@ -63,11 +70,16 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
 
     return () => {
       isActive = false;
-      if (currentUrl && currentUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(currentUrl);
-      }
     };
-  }, [selectedImage?.id, driveService]);
+  }, [selectedImage?.id, driveService, fullImageId]);
+
+  useEffect(() => {
+    const prev = prevUrlRef.current;
+    if (prev && prev.startsWith('blob:') && prev !== fullImageUrl) {
+      URL.revokeObjectURL(prev);
+    }
+    prevUrlRef.current = fullImageUrl;
+  }, [fullImageUrl]);
 
   useEffect(() => {
     setIsFadingOut(false);
@@ -80,6 +92,47 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
       if (fadeTimeoutRef.current) window.clearTimeout(fadeTimeoutRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (pendingIndex === null) return;
+    if (pendingIndex < 0 || pendingIndex >= files.length) {
+      setPendingIndex(null);
+      setIsFadingOut(false);
+      setIsFullImageLoading(false);
+      return;
+    }
+
+    let isActive = true;
+    const file = files[pendingIndex];
+
+    const loadPending = async () => {
+      setIsFullImageLoading(true);
+      try {
+        const blob = await driveService.downloadFile(file.id);
+        if (!isActive) return;
+        const objectUrl = URL.createObjectURL(blob);
+        setFullImageUrl(objectUrl);
+        setFullImageId(file.id);
+        setSelectedIndex(pendingIndex);
+        setForceInstantOpacity(true);
+      } catch (err) {
+        console.error('[gallery] pending image load failed', { fileId: file.id, err });
+        if (!isActive) return;
+        setFullImageUrl(file.webContentLink || null);
+        setFullImageId(file.id);
+        setSelectedIndex(pendingIndex);
+        setForceInstantOpacity(true);
+      } finally {
+        if (isActive) setPendingIndex(null);
+      }
+    };
+
+    loadPending();
+
+    return () => {
+      isActive = false;
+    };
+  }, [pendingIndex, files, driveService]);
 
   useEffect(() => {
     const fetchFiles = async () => {
@@ -116,12 +169,12 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
   const navigateToIndex = (nextIndex: number) => {
     if (selectedIndex === null || files.length === 0) return;
     if (nextIndex === selectedIndex) return;
+    if (pendingIndex !== null) return;
     if (fadeTimeoutRef.current) window.clearTimeout(fadeTimeoutRef.current);
 
     setIsFadingOut(true);
     fadeTimeoutRef.current = window.setTimeout(() => {
-      setForceInstantOpacity(true);
-      setSelectedIndex(nextIndex);
+      setPendingIndex(nextIndex);
     }, 160);
   };
 
@@ -324,7 +377,11 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
                 src={fullImageUrl}
                 alt={selectedImage.name}
                 className={`max-w-full max-h-[calc(100vh-220px)] md:max-h-[calc(100vh-260px)] object-contain shadow-2xl rounded-lg animate-in zoom-in-95 duration-300 ${isFadingOut ? 'opacity-70 transition-opacity duration-200 ease-out' : forceInstantOpacity ? 'opacity-100 transition-none' : 'opacity-100'}`}
-                onLoad={() => setForceInstantOpacity(false)}
+                onLoad={() => {
+                  setForceInstantOpacity(false);
+                  setIsFadingOut(false);
+                  setIsFullImageLoading(false);
+                }}
                 onClick={(e) => e.stopPropagation()}
               />
             )}
