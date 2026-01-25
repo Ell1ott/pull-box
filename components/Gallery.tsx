@@ -122,129 +122,162 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
-        <div className="flex items-center space-x-3 md:space-x-4">
-          <button
-            onClick={onBack}
-            className="p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors"
-            aria-label="Back"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900 truncate">{box.name}</h1>
-            <p className="text-gray-500 text-xs md:text-sm truncate">Folder ID: {box.driveFolderId}</p>
+    <div className="min-h-screen bg-[#F2F2F7] font-sans selection:bg-[#007AFF]/20 selection:text-[#007AFF]">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200/50">
+        <div className="max-w-7xl mx-auto px-6 h-16 md:h-20 flex items-center justify-between">
+          <div className="flex items-center space-x-4 min-w-0">
+            <button
+              onClick={onBack}
+              className="p-2 -ml-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
+              aria-label="Back"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight truncate">{box.name}</h1>
+              <div className="flex items-center text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-widest mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+                {files.length} Items Collected
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center space-x-2 md:space-x-3">
-          <button
-            onClick={handleDownloadAll}
-            disabled={loading || files.length === 0 || downloadingAll}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center space-x-2 px-3 md:px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            <span className="whitespace-nowrap">{downloadingAll ? 'Downloading...' : 'Download All'}</span>
-          </button>
-          <div className="px-3 md:px-4 py-2 bg-indigo-50 text-indigo-700 font-semibold rounded-lg text-sm whitespace-nowrap">
-            {files.length} Photos
+          
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleDownloadAll}
+              disabled={loading || files.length === 0 || downloadingAll}
+              className="flex items-center justify-center space-x-2 px-4 md:px-6 py-2 md:py-3 bg-[#007AFF] text-white font-bold rounded-2xl text-[13px] md:text-[15px] hover:bg-[#0062CC] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-200 active:scale-[0.98]"
+            >
+              <Download className="w-4 h-4" strokeWidth={2.5} />
+              <span className="hidden sm:inline">{downloadingAll ? 'Preparing...' : 'Download All'}</span>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Grid */}
-      {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
-            <div key={i} className="aspect-square bg-gray-200 animate-pulse rounded-xl" />
-          ))}
-        </div>
-      ) : files.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 md:py-20 text-center">
-          <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <ImageIcon className="w-8 h-8 md:w-10 md:h-10 text-gray-300" />
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Gallery Grid */}
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(i => (
+              <div key={i} className="aspect-square bg-white rounded-3xl border border-gray-100 animate-pulse" />
+            ))}
           </div>
-          <h3 className="text-lg font-medium text-gray-900">No photos yet</h3>
-          <p className="text-gray-500 mt-1 max-w-xs md:max-w-sm text-sm">
-            Share the public link with your friends to start collecting photos.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-          {files.map((file, index) => (
-            <div
-              key={file.id}
-              onClick={() => setSelectedIndex(index)}
-              className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 border shadow-sm transition-all hover:shadow-md cursor-pointer"
-            >
-              <img
-                src={file.thumbnailLink}
-                alt={file.name}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                loading="lazy"
-              />
-              <div className="absolute top-2 right-2 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="p-1.5 md:p-2 bg-black/40 text-white rounded-full backdrop-blur-md">
-                  <Maximize2 className="w-4 h-4 md:w-5 md:h-5" />
+        ) : files.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 md:py-32 text-center bg-white rounded-[40px] shadow-sm border border-gray-100">
+            <div className="w-24 h-24 bg-[#F5F5F7] rounded-full flex items-center justify-center mb-6 text-gray-300">
+              <ImageIcon className="w-10 h-10" strokeWidth={1.5} />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 tracking-tight">Empty Jar</h3>
+            <p className="text-gray-500 mt-2 max-w-sm mx-auto font-medium">
+              Share the collection link with others to start filling this jar with memories.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+            {files.map((file, index) => (
+              <div
+                key={file.id}
+                onClick={() => setSelectedIndex(index)}
+                className="group relative aspect-square rounded-[28px] overflow-hidden bg-white border border-gray-100 shadow-sm transition-all hover:shadow-xl hover:shadow-black/5 cursor-pointer"
+              >
+                <img
+                  src={file.thumbnailLink}
+                  alt={file.name}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  loading="lazy"
+                />
+                
+                {/* Selection Overlay */}
+                <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 transform scale-90 group-hover:scale-100 transition-transform">
+                    <Maximize2 className="w-5 h-5" />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
-      {/* Lightbox */}
+      {/* Modern Lightbox */}
       {selectedImage && (
-        <div className="fixed inset-0 z-[100] bg-black/95 sm:bg-black/90 flex flex-col items-center justify-center animate-in fade-in duration-200">
-          {/* Top Bar */}
-          <div className="absolute top-0 inset-x-0 p-4 flex items-center justify-between text-white z-10 bg-gradient-to-b from-black/60 to-transparent">
-            <div className="flex flex-col">
-              <span className="font-medium text-sm md:text-base truncate max-w-[200px] md:max-w-md">
+        <div className="fixed inset-0 z-[100] flex flex-col animate-in fade-in duration-300">
+          {/* Backdrop with Blur */}
+          <div className="absolute inset-0 bg-black/95 backdrop-blur-xl" />
+          
+          {/* Controls Bar */}
+          <div className="relative z-10 p-6 flex items-center justify-between text-white">
+            <div className="flex flex-col bg-black/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10">
+              <span className="font-bold text-sm tracking-tight truncate max-w-[200px] md:max-w-md">
                 {selectedImage.name}
               </span>
-              <span className="text-xs text-gray-400">
+              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
                 {selectedIndex! + 1} of {files.length}
               </span>
             </div>
-            <button
-              onClick={() => setSelectedIndex(null)}
-              className="p-2 hover:bg-white/10 rounded-full transition-colors"
-              aria-label="Close"
-            >
-              <X className="w-6 h-6 md:w-8 md:h-8" />
-            </button>
+            
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setSelectedIndex(null)}
+                className="w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-all border border-white/10"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
-          {/* Navigation Buttons - Hidden on small mobile, use swipe feel or just arrows on larger */}
-          <button
-            onClick={(e) => { e.stopPropagation(); handlePrev(); }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 md:p-3 text-white hover:bg-white/10 rounded-full transition-colors z-10 hidden sm:block"
-          >
-            <ChevronLeft className="w-8 h-8 md:w-10 md:h-10" />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); handleNext(); }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 md:p-3 text-white hover:bg-white/10 rounded-full transition-colors z-10 hidden sm:block"
-          >
-            <ChevronRight className="w-8 h-8 md:w-10 md:h-10" />
-          </button>
-          
+          {/* Main Visual */}
           <div 
-            className="w-full h-full flex items-center justify-center p-4 md:p-12"
+            className="flex-1 relative flex items-center justify-center p-4 md:p-12 mb-20"
             onClick={() => setSelectedIndex(null)}
           >
+            {/* Nav Arrows */}
+            <button
+              onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+              className="absolute left-6 hidden md:flex w-14 h-14 items-center justify-center bg-white/5 hover:bg-white/10 text-white rounded-full transition-all border border-white/10 z-20 backdrop-blur-sm"
+            >
+              <ChevronLeft className="w-8 h-8" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); handleNext(); }}
+              className="absolute right-6 hidden md:flex w-14 h-14 items-center justify-center bg-white/5 hover:bg-white/10 text-white rounded-full transition-all border border-white/10 z-20 backdrop-blur-sm"
+            >
+              <ChevronRight className="w-8 h-8" />
+            </button>
+            
             <img
               src={selectedImage.webContentLink}
               alt={selectedImage.name}
-              className="max-w-full max-h-full object-contain shadow-2xl"
+              className="max-w-full max-h-full object-contain shadow-2xl rounded-lg animate-in zoom-in-95 duration-300"
               onClick={(e) => e.stopPropagation()}
             />
           </div>
 
-          {/* Bottom Actions */}
-          <div className="absolute bottom-0 inset-x-0 p-6 flex flex-col sm:flex-row items-center justify-center gap-4 bg-gradient-to-t from-black/60 to-transparent">
-            <div className="flex items-center space-x-3 w-full sm:w-auto">
+          {/* Bottom Action Tray */}
+          <div className="absolute bottom-8 inset-x-0 z-10 flex justify-center px-6">
+            <div className="bg-white/10 backdrop-blur-2xl px-2 py-2 rounded-[28px] border border-white/20 flex items-center space-x-1 shadow-2xl">
+              <button
+                onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+                className="md:hidden w-12 h-12 flex items-center justify-center text-white"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              
+              <div className="h-8 w-[1px] bg-white/10 mx-1 md:hidden" />
+              
+              <a
+                href={selectedImage.webContentLink}
+                download
+                className="flex items-center space-x-2 px-6 py-3 bg-[#007AFF] text-white font-bold rounded-[22px] hover:bg-[#0062CC] transition-all active:scale-95"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Download className="w-4 h-4" strokeWidth={3} />
+                <span className="text-[14px]">Download</span>
+              </a>
+
               {typeof navigator !== 'undefined' && (navigator as any).share && (
                 <button
                   onClick={async (e) => {
@@ -260,38 +293,26 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
                       console.error('Share failed', err);
                     }
                   }}
-                  className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors border border-white/20"
-                  title="Share"
+                  className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/10 rounded-full transition-colors"
                 >
                   <Share2 className="w-5 h-5" />
                 </button>
               )}
-              <a
-                href={selectedImage.webContentLink}
-                download
-                className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-6 py-3 bg-white text-black font-semibold rounded-xl hover:bg-gray-100 transition-colors"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Download className="w-5 h-5" />
-                <span>Download</span>
-              </a>
+              
               <button
                 onClick={(e) => { e.stopPropagation(); handleDelete(selectedImage.id); }}
-                className="flex items-center justify-center p-3 md:px-6 md:py-3 bg-red-500/20 md:bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-colors border border-red-500/30"
+                className="w-12 h-12 flex items-center justify-center text-red-400 hover:bg-red-500/10 rounded-full transition-colors"
               >
-                <Trash2 className="w-5 h-5 md:mr-2" />
-                <span className="hidden md:inline">Delete</span>
+                <Trash2 className="w-5 h-5" />
               </button>
-            </div>
-            
-            {/* Mobile Nav Helper */}
-            <div className="flex sm:hidden items-center justify-center space-x-8 text-white w-full">
-              <button onClick={(e) => { e.stopPropagation(); handlePrev(); }} className="p-2">
-                <ChevronLeft className="w-8 h-8" />
-              </button>
-              <span className="text-sm font-medium">{selectedIndex! + 1} / {files.length}</span>
-              <button onClick={(e) => { e.stopPropagation(); handleNext(); }} className="p-2">
-                <ChevronRight className="w-8 h-8" />
+
+              <div className="h-8 w-[1px] bg-white/10 mx-1 md:hidden" />
+
+              <button
+                onClick={(e) => { e.stopPropagation(); handleNext(); }}
+                className="md:hidden w-12 h-12 flex items-center justify-center text-white"
+              >
+                <ChevronRight className="w-6 h-6" />
               </button>
             </div>
           </div>
