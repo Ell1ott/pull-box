@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Download, Trash2, Maximize2, X, Image as ImageIcon, Share2 } from 'lucide-react';
 import { PullBox, DriveFile } from '../types';
 import { GoogleDriveService } from '../services/googleDrive';
@@ -14,8 +14,13 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
   const [files, setFiles] = useState<DriveFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [fullImageUrl, setFullImageUrl] = useState<string | null>(null);
+  const [isFullImageLoading, setIsFullImageLoading] = useState(false);
   const selectedImage = selectedIndex !== null ? files[selectedIndex] : null;
   const [downloadingAll, setDownloadingAll] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const [forceInstantOpacity, setForceInstantOpacity] = useState(false);
+  const fadeTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -28,6 +33,53 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedIndex]);
+
+  useEffect(() => {
+    let isActive = true;
+    const currentUrl = fullImageUrl;
+
+    const loadFullImage = async () => {
+      if (!selectedImage) {
+        setFullImageUrl(null);
+        return;
+      }
+
+      setIsFullImageLoading(true);
+      try {
+        const blob = await driveService.downloadFile(selectedImage.id);
+        if (!isActive) return;
+        const objectUrl = URL.createObjectURL(blob);
+        setFullImageUrl(objectUrl);
+      } catch (err) {
+        console.error('[gallery] full image load failed', { fileId: selectedImage.id, err });
+        if (!isActive) return;
+        setFullImageUrl(selectedImage.webContentLink || null);
+      } finally {
+        if (isActive) setIsFullImageLoading(false);
+      }
+    };
+
+    loadFullImage();
+
+    return () => {
+      isActive = false;
+      if (currentUrl && currentUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(currentUrl);
+      }
+    };
+  }, [selectedImage?.id, driveService]);
+
+  useEffect(() => {
+    setIsFadingOut(false);
+    setForceInstantOpacity(true);
+  }, [selectedImage?.id]);
+
+
+  useEffect(() => {
+    return () => {
+      if (fadeTimeoutRef.current) window.clearTimeout(fadeTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchFiles = async () => {
@@ -61,15 +113,29 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
     }
   };
 
+  const navigateToIndex = (nextIndex: number) => {
+    if (selectedIndex === null || files.length === 0) return;
+    if (nextIndex === selectedIndex) return;
+    if (fadeTimeoutRef.current) window.clearTimeout(fadeTimeoutRef.current);
+
+    setIsFadingOut(true);
+    fadeTimeoutRef.current = window.setTimeout(() => {
+      setForceInstantOpacity(true);
+      setSelectedIndex(nextIndex);
+    }, 160);
+  };
+
   const handlePrev = () => {
     if (selectedIndex !== null) {
-      setSelectedIndex((selectedIndex - 1 + files.length) % files.length);
+      const nextIndex = (selectedIndex - 1 + files.length) % files.length;
+      navigateToIndex(nextIndex);
     }
   };
 
   const handleNext = () => {
     if (selectedIndex !== null) {
-      setSelectedIndex((selectedIndex + 1) % files.length);
+      const nextIndex = (selectedIndex + 1) % files.length;
+      navigateToIndex(nextIndex);
     }
   };
 
@@ -248,12 +314,20 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
               <ChevronRight className="w-8 h-8" />
             </button>
             
-            <img
-              src={selectedImage.webContentLink}
-              alt={selectedImage.name}
-              className="max-w-full max-h-full object-contain shadow-2xl rounded-lg animate-in zoom-in-95 duration-300"
-              onClick={(e) => e.stopPropagation()}
-            />
+            {isFullImageLoading && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              </div>
+            )}
+            {fullImageUrl && (
+              <img
+                src={fullImageUrl}
+                alt={selectedImage.name}
+                className={`max-w-full max-h-[calc(100vh-220px)] md:max-h-[calc(100vh-260px)] object-contain shadow-2xl rounded-lg animate-in zoom-in-95 duration-300 ${isFadingOut ? 'opacity-70 transition-opacity duration-200 ease-out' : forceInstantOpacity ? 'opacity-100 transition-none' : 'opacity-100'}`}
+                onLoad={() => setForceInstantOpacity(false)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
           </div>
 
           {/* Bottom Action Tray */}
