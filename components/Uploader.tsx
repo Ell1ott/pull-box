@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Upload, X, CheckCircle2, Image as ImageIcon, AlertCircle, Loader2 } from 'lucide-react';
 import { PullBox, UploadProgress } from '../types';
-import { compressImage, formatBytes } from '../services/compressionService';
+import { formatBytes } from '../services/compressionService';
 import { GoogleDriveService } from '../services/googleDrive';
 
 interface UploaderProps {
@@ -40,14 +40,13 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
     setFiles(files.filter((_, i) => i !== index));
   };
 
-  const uploadViaEdge = async (file: File, compressed: Blob) => {
+  const uploadViaEdge = async (file: File) => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
     if (!supabaseUrl) throw new Error('Missing Supabase URL');
 
     const formData = new FormData();
     formData.append('code', box.linkCode);
-    const uploadFile = new File([compressed], file.name, { type: 'image/jpeg' });
-    formData.append('file', uploadFile);
+    formData.append('file', file);
 
     try {
       const res = await fetch(`${supabaseUrl}/functions/v1/drive-upload`, {
@@ -93,19 +92,16 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
           [file.name]: { ...prev[file.name], status: 'uploading', progress: 10 }
         }));
 
-        // Compression phase
-        const compressed = await compressImage(file, 0.7);
-        
         setUploads(prev => ({
           ...prev,
           [file.name]: { ...prev[file.name], progress: 50 }
         }));
 
-        // Upload to Drive phase
+        // Upload to Drive phase (raw file)
         if (useEdgeUpload) {
-          await uploadViaEdge(file, compressed);
+          await uploadViaEdge(file);
         } else {
-          await driveService!.uploadFile(box.driveFolderId, compressed, file.name);
+          await driveService!.uploadFile(box.driveFolderId, file, file.name);
         }
 
         setUploads(prev => ({
