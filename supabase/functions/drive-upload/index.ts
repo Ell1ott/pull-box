@@ -81,6 +81,13 @@ async function uploadToDrive(accessToken: string, folderId: string, file: File):
   return await uploadRes.json();
 }
 
+const corsHeaders: HeadersInit = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-upload-token",
+  "Access-Control-Max-Age": "86400",
+};
+
 serve(async (req) => {
   const requestId = crypto.randomUUID();
   const debug = (message: string, extra?: Record<string, unknown>) => {

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Download, Trash2, Maximize2, X, Image as ImageIcon, Share2 } from 'lucide-react';
 import { PullBox, DriveFile } from '../types';
 import { GoogleDriveService } from '../services/googleDrive';
@@ -14,16 +14,8 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
   const [files, setFiles] = useState<DriveFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [fullImageUrl, setFullImageUrl] = useState<string | null>(null);
-  const [isFullImageLoading, setIsFullImageLoading] = useState(false);
   const selectedImage = selectedIndex !== null ? files[selectedIndex] : null;
   const [downloadingAll, setDownloadingAll] = useState(false);
-  const [isFadingOut, setIsFadingOut] = useState(false);
-  const [forceInstantOpacity, setForceInstantOpacity] = useState(false);
-  const fadeTimeoutRef = useRef<number | null>(null);
-  const [pendingIndex, setPendingIndex] = useState<number | null>(null);
-  const [fullImageId, setFullImageId] = useState<string | null>(null);
-  const prevUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -36,103 +28,6 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedIndex]);
-
-  useEffect(() => {
-    let isActive = true;
-
-    const loadFullImage = async () => {
-      if (!selectedImage) {
-        setFullImageUrl(null);
-        setFullImageId(null);
-        return;
-      }
-
-      if (fullImageId === selectedImage.id) return;
-
-      setIsFullImageLoading(true);
-      try {
-        const blob = await driveService.downloadFile(selectedImage.id);
-        if (!isActive) return;
-        const objectUrl = URL.createObjectURL(blob);
-        setFullImageUrl(objectUrl);
-        setFullImageId(selectedImage.id);
-      } catch (err) {
-        console.error('[gallery] full image load failed', { fileId: selectedImage.id, err });
-        if (!isActive) return;
-        setFullImageUrl(selectedImage.webContentLink || null);
-        setFullImageId(selectedImage.id);
-      } finally {
-        if (isActive) setIsFullImageLoading(false);
-      }
-    };
-
-    loadFullImage();
-
-    return () => {
-      isActive = false;
-    };
-  }, [selectedImage?.id, driveService, fullImageId]);
-
-  useEffect(() => {
-    const prev = prevUrlRef.current;
-    if (prev && prev.startsWith('blob:') && prev !== fullImageUrl) {
-      URL.revokeObjectURL(prev);
-    }
-    prevUrlRef.current = fullImageUrl;
-  }, [fullImageUrl]);
-
-  useEffect(() => {
-    setIsFadingOut(false);
-    setForceInstantOpacity(true);
-  }, [selectedImage?.id]);
-
-
-  useEffect(() => {
-    return () => {
-      if (fadeTimeoutRef.current) window.clearTimeout(fadeTimeoutRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (pendingIndex === null) return;
-    if (pendingIndex < 0 || pendingIndex >= files.length) {
-      setPendingIndex(null);
-      setIsFadingOut(false);
-      setIsFullImageLoading(false);
-      return;
-    }
-
-    let isActive = true;
-    const file = files[pendingIndex];
-
-    const loadPending = async () => {
-      setIsFullImageLoading(true);
-      try {
-        const blob = await driveService.downloadFile(file.id);
-        if (!isActive) return;
-        const objectUrl = URL.createObjectURL(blob);
-        setFullImageUrl(objectUrl);
-        setFullImageId(file.id);
-        setSelectedIndex(pendingIndex);
-        setForceInstantOpacity(true);
-      } catch (err) {
-        console.error('[gallery] pending image load failed', { fileId: file.id, err });
-        if (!isActive) return;
-        setFullImageUrl(file.webContentLink || null);
-        setFullImageId(file.id);
-        setSelectedIndex(pendingIndex);
-        setForceInstantOpacity(true);
-      } finally {
-        if (isActive) setPendingIndex(null);
-      }
-    };
-
-    loadPending();
-
-    return () => {
-      isActive = false;
-    };
-  }, [pendingIndex, files, driveService]);
 
   useEffect(() => {
     const fetchFiles = async () => {
@@ -166,29 +61,15 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
     }
   };
 
-  const navigateToIndex = (nextIndex: number) => {
-    if (selectedIndex === null || files.length === 0) return;
-    if (nextIndex === selectedIndex) return;
-    if (pendingIndex !== null) return;
-    if (fadeTimeoutRef.current) window.clearTimeout(fadeTimeoutRef.current);
-
-    setIsFadingOut(true);
-    fadeTimeoutRef.current = window.setTimeout(() => {
-      setPendingIndex(nextIndex);
-    }, 160);
-  };
-
   const handlePrev = () => {
     if (selectedIndex !== null) {
-      const nextIndex = (selectedIndex - 1 + files.length) % files.length;
-      navigateToIndex(nextIndex);
+      setSelectedIndex((selectedIndex - 1 + files.length) % files.length);
     }
   };
 
   const handleNext = () => {
     if (selectedIndex !== null) {
-      const nextIndex = (selectedIndex + 1) % files.length;
-      navigateToIndex(nextIndex);
+      setSelectedIndex((selectedIndex + 1) % files.length);
     }
   };
 
@@ -294,17 +175,17 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+          <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-4 md:gap-6">
             {files.map((file, index) => (
               <div
                 key={file.id}
                 onClick={() => setSelectedIndex(index)}
-                className="group relative aspect-square rounded-[28px] overflow-hidden bg-white border border-gray-100 shadow-sm transition-all hover:shadow-xl hover:shadow-black/5 cursor-pointer"
+                className="group relative mb-4 md:mb-6 break-inside-avoid rounded-[28px] overflow-hidden bg-white border border-gray-100 shadow-sm transition-all hover:shadow-xl hover:shadow-black/5 cursor-pointer"
               >
                 <img
                   src={file.thumbnailLink}
                   alt={file.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110"
                   loading="lazy"
                 />
                 
@@ -367,24 +248,12 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
               <ChevronRight className="w-8 h-8" />
             </button>
             
-            {isFullImageLoading && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="h-10 w-10 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-              </div>
-            )}
-            {fullImageUrl && (
-              <img
-                src={fullImageUrl}
-                alt={selectedImage.name}
-                className={`max-w-full max-h-[calc(100vh-220px)] md:max-h-[calc(100vh-260px)] object-contain shadow-2xl rounded-lg animate-in zoom-in-95 duration-300 ${isFadingOut ? 'opacity-70 transition-opacity duration-200 ease-out' : forceInstantOpacity ? 'opacity-100 transition-none' : 'opacity-100'}`}
-                onLoad={() => {
-                  setForceInstantOpacity(false);
-                  setIsFadingOut(false);
-                  setIsFullImageLoading(false);
-                }}
-                onClick={(e) => e.stopPropagation()}
-              />
-            )}
+            <img
+              src={selectedImage.webContentLink}
+              alt={selectedImage.name}
+              className="max-w-full max-h-full object-contain shadow-2xl rounded-lg animate-in zoom-in-95 duration-300"
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
 
           {/* Bottom Action Tray */}

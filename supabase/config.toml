@@ -1,0 +1,2 @@
+[functions.drive-upload]
+verify_jwt = false

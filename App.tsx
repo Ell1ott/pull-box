@@ -190,6 +190,19 @@ const MainAppContent: React.FC = () => {
     return data.access_token as string;
   };
 
+  const refreshGoogleAccessToken = async (): Promise<string | null> => {
+    const { data, error } = await supabase.functions.invoke('drive-token', { method: 'POST' });
+    if (error) {
+      console.warn('[auth] refresh token failed', { message: error.message });
+      return null;
+    }
+    const token = (data as { accessToken?: string } | null)?.accessToken || null;
+    if (token) {
+      setUser((prev) => (prev ? { ...prev, accessToken: token } : prev));
+    }
+    return token;
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -239,7 +252,7 @@ const MainAppContent: React.FC = () => {
 
   useEffect(() => {
     if (user?.accessToken) {
-      setDriveService(new GoogleDriveService(user.accessToken));
+      setDriveService(new GoogleDriveService(user.accessToken, refreshGoogleAccessToken));
     } else {
       setDriveService(null);
     }

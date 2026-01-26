@@ -48,26 +48,14 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
     formData.append('code', box.linkCode);
     formData.append('file', file);
 
-    try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/drive-upload`, {
-        method: 'POST',
-        body: formData,
-      });
+    const res = await fetch(`${supabaseUrl}/functions/v1/drive-upload`, {
+      method: 'POST',
+      body: formData,
+    });
 
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(errText || 'Upload failed');
-      }
-    } catch (err) {
-      // Browsers throw TypeError (or similar) on CORS errors or network failure.
-      // Since uploads are actually succeeding in Google Drive, we'll treat "Failed to fetch" 
-      // as a success to avoid showing false errors to the user.
-      const isFetchError = err instanceof TypeError || (err instanceof Error && err.name === 'TypeError');
-      if (isFetchError) {
-        console.warn(`Fetch error for ${file.name}, but upload likely succeeded (CORS issue):`, err);
-        return;
-      }
-      throw err;
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText || 'Upload failed');
     }
   };
 
@@ -228,11 +216,16 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
                 <div className="flex-1 overflow-y-auto -mx-2 px-2 space-y-3 pb-4 scrollbar-hide">
                   {files.map((file, i) => (
                     <div key={i} className="flex items-center p-3 bg-gray-50 rounded-2xl">
-                      <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-gray-100">
+                      <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-gray-100 relative overflow-hidden">
                         {uploads[file.name]?.status === 'completed' ? (
                           <CheckCircle2 className="w-6 h-6 text-[#34C759]" />
                         ) : uploads[file.name]?.status === 'error' ? (
                           <AlertCircle className="w-6 h-6 text-red-500" />
+                        ) : uploads[file.name]?.status === 'uploading' ? (
+                          <div className="relative flex items-center justify-center">
+                            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[#EAF2FF] via-white to-[#EAF2FF] animate-pulse" />
+                            <Loader2 className="w-5 h-5 text-[#007AFF] animate-spin relative" />
+                          </div>
                         ) : (
                           <ImageIcon className="w-5 h-5 text-gray-400" />
                         )}
@@ -390,15 +383,24 @@ const Uploader: React.FC<UploaderProps> = ({ box, driveService, useEdgeUpload = 
                         <span className="text-xs text-gray-500 px-4 truncate w-full text-center font-medium">{file.name}</span>
                         
                         {/* File Status Overlay */}
-                        {uploads[file.name]?.status === 'completed' && (
-                           <div className="absolute inset-0 bg-white/80 backdrop-blur flex items-center justify-center">
-                              <CheckCircle2 className="w-12 h-12 text-[#34C759]" />
-                           </div>
+                        {uploads[file.name]?.status === 'uploading' && (
+                          <div className="absolute inset-0 bg-white/70 backdrop-blur flex flex-col items-center justify-center gap-3">
+                            <div className="relative">
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#DCEBFF] via-white to-[#DCEBFF] animate-pulse" />
+                              <Loader2 className="w-6 h-6 text-[#007AFF] animate-spin absolute inset-0 m-auto" />
+                            </div>
+                            <span className="text-xs font-medium text-gray-500">Uploading</span>
+                          </div>
                         )}
-                         {uploads[file.name]?.status === 'error' && (
-                           <div className="absolute inset-0 bg-white/80 backdrop-blur flex items-center justify-center">
-                              <AlertCircle className="w-12 h-12 text-red-500" />
-                           </div>
+                        {uploads[file.name]?.status === 'completed' && (
+                          <div className="absolute inset-0 bg-white/80 backdrop-blur flex items-center justify-center">
+                            <CheckCircle2 className="w-12 h-12 text-[#34C759]" />
+                          </div>
+                        )}
+                        {uploads[file.name]?.status === 'error' && (
+                          <div className="absolute inset-0 bg-white/80 backdrop-blur flex items-center justify-center">
+                            <AlertCircle className="w-12 h-12 text-red-500" />
+                          </div>
                         )}
                         
                         {/* Hover Actions */}

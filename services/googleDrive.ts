@@ -1,23 +1,42 @@
 
 import { DriveFile } from '../types';
 
+type TokenRefresher = () => Promise<string | null>;
+
 export class GoogleDriveService {
   private accessToken: string;
+  private tokenRefresher?: TokenRefresher;
 
-  constructor(token: string) {
+  constructor(token: string, tokenRefresher?: TokenRefresher) {
     if (!token) {
       throw new Error('Missing Google access token');
     }
     this.accessToken = token;
+    this.tokenRefresher = tokenRefresher;
   }
 
-  private async fetchWithAuth(url: string, options: RequestInit = {}) {
+  private async authorizedFetch(url: string, options: RequestInit = {}, retry = true): Promise<Response> {
     const headers = new Headers(options.headers || {});
     headers.set('Authorization', `Bearer ${this.accessToken}`);
 
     console.log('[drive:fetch] request', { url, method: options.method || 'GET' });
     const response = await fetch(url, { ...options, headers });
     console.log('[drive:fetch] response', { url, status: response.status });
+
+    if (response.status === 401 && retry && this.tokenRefresher) {
+      const refreshed = await this.tokenRefresher().catch(() => null);
+      if (refreshed && refreshed !== this.accessToken) {
+        console.log('[drive:fetch] token refreshed, retrying request');
+        this.accessToken = refreshed;
+        return this.authorizedFetch(url, options, false);
+      }
+    }
+
+    return response;
+  }
+
+  private async fetchWithAuth(url: string, options: RequestInit = {}) {
+    const response = await this.authorizedFetch(url, options);
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: { message: 'Unknown error' } }));
       console.error('[drive:fetch] error', { url, status: response.status, error });
@@ -66,11 +85,8 @@ export class GoogleDriveService {
     formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
     formData.append('file', fileBlob);
 
-    const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,thumbnailLink,webContentLink,size,createdTime', {
+    const response = await this.authorizedFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,thumbnailLink,webContentLink,size,createdTime', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.accessToken}`
-      },
       body: formData
     });
 
@@ -93,11 +109,8 @@ export class GoogleDriveService {
   }
 
   async downloadFile(fileId: string): Promise<Blob> {
-    const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${this.accessToken}`
-      }
+    const response = await this.authorizedFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      method: 'GET'
     });
 
     if (!response.ok) {
