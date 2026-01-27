@@ -16,6 +16,9 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const selectedImage = selectedIndex !== null ? files[selectedIndex] : null;
   const [downloadingAll, setDownloadingAll] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [selectedImageBlob, setSelectedImageBlob] = useState<Blob | null>(null);
+  const [loadingSelected, setLoadingSelected] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -48,6 +51,50 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
 
     fetchFiles();
   }, [box.driveFolderId, driveService]);
+
+  useEffect(() => {
+    let isActive = true;
+    let objectUrl: string | null = null;
+
+    const cleanup = () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+      objectUrl = null;
+    };
+
+    if (!selectedImage) {
+      cleanup();
+      setSelectedImageUrl(null);
+      setSelectedImageBlob(null);
+      setLoadingSelected(false);
+      return () => undefined;
+    }
+
+    setLoadingSelected(true);
+    setSelectedImageUrl(null);
+    setSelectedImageBlob(null);
+
+    driveService
+      .downloadFile(selectedImage.id)
+      .then((blob) => {
+        if (!isActive) return;
+        objectUrl = URL.createObjectURL(blob);
+        setSelectedImageBlob(blob);
+        setSelectedImageUrl(objectUrl);
+      })
+      .catch((err) => {
+        console.error('[gallery] preview download failed', { fileId: selectedImage.id, err });
+      })
+      .finally(() => {
+        if (isActive) setLoadingSelected(false);
+      });
+
+    return () => {
+      isActive = false;
+      cleanup();
+    };
+  }, [selectedImage?.id, driveService]);
 
   const handleDelete = async (fileId: string) => {
     if (!confirm('Are you sure you want to delete this photo?')) return;
@@ -121,6 +168,26 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
     }
   };
 
+  const handleDownloadSelected = async (event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    if (!selectedImage) return;
+    try {
+      const blob = selectedImageBlob || (await driveService.downloadFile(selectedImage.id));
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = selectedImage.name || 'photo.jpg';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      console.error('[gallery] single download failed', { fileId: selectedImage.id, err });
+      alert('Download failed. Please try again.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F2F2F7] font-sans selection:bg-[#007AFF]/20 selection:text-[#007AFF]">
       {/* Sticky Header */}
@@ -175,17 +242,17 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
             </p>
           </div>
         ) : (
-          <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
             {files.map((file, index) => (
               <div
                 key={file.id}
                 onClick={() => setSelectedIndex(index)}
-                className="group relative mb-4 md:mb-6 break-inside-avoid rounded-[28px] overflow-hidden bg-white border border-gray-100 shadow-sm transition-all hover:shadow-xl hover:shadow-black/5 cursor-pointer"
+                className="group relative aspect-square rounded-[28px] overflow-hidden bg-white border border-gray-100 shadow-sm transition-all hover:shadow-xl hover:shadow-black/5 cursor-pointer"
               >
                 <img
                   src={file.thumbnailLink}
                   alt={file.name}
-                  className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   loading="lazy"
                 />
                 
@@ -248,12 +315,16 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
               <ChevronRight className="w-8 h-8" />
             </button>
             
-            <img
-              src={selectedImage.webContentLink}
-              alt={selectedImage.name}
-              className="max-w-full max-h-full object-contain shadow-2xl rounded-lg animate-in zoom-in-95 duration-300"
+            <div
+              className="w-full h-full max-w-full max-h-[calc(100vh-220px)] md:max-h-[calc(100vh-260px)] flex items-center justify-center"
               onClick={(e) => e.stopPropagation()}
-            />
+            >
+              <img
+                src={selectedImageUrl || selectedImage.thumbnailLink || selectedImage.webContentLink}
+                alt={selectedImage.name}
+                className="w-full h-full object-contain shadow-2xl rounded-lg animate-in zoom-in-95 duration-300"
+              />
+            </div>
           </div>
 
           {/* Bottom Action Tray */}
@@ -268,22 +339,21 @@ const Gallery: React.FC<GalleryProps> = ({ box, driveService, onBack }) => {
               
               <div className="h-8 w-[1px] bg-white/10 mx-1 md:hidden" />
               
-              <a
-                href={selectedImage.webContentLink}
-                download
+              <button
+                onClick={handleDownloadSelected}
                 className="flex items-center space-x-2 px-6 py-3 bg-[#007AFF] text-white font-bold rounded-[22px] hover:bg-[#0062CC] transition-all active:scale-95"
-                onClick={(e) => e.stopPropagation()}
+                disabled={loadingSelected}
               >
                 <Download className="w-4 h-4" strokeWidth={3} />
-                <span className="text-[14px]">Download</span>
-              </a>
+                <span className="text-[14px]">{loadingSelected ? 'Loading...' : 'Download'}</span>
+              </button>
 
               {typeof navigator !== 'undefined' && (navigator as any).share && (
                 <button
                   onClick={async (e) => {
                     e.stopPropagation();
                     try {
-                      const blob = await driveService.downloadFile(selectedImage.id);
+                      const blob = selectedImageBlob || (await driveService.downloadFile(selectedImage.id));
                       const file = new File([blob], selectedImage.name || 'photo.jpg', { type: blob.type });
                       await (navigator as any).share({
                         files: [file],
